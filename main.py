@@ -5,6 +5,7 @@ from dateutil import tz
 from google.cloud import bigquery
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
+from abc import ABC, abstractmethod
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -15,11 +16,6 @@ logging.basicConfig(level=logging.INFO)
 with open("config.yml", "r") as config_file:
     config = yaml.safe_load(config_file)
 
-# Set up BigQuery client
-client = bigquery.Client(project=config["bigquery"]["project_id"])
-
-# Set up Slack client
-slack_client = WebClient(token=config["slack"]["token"])
 
 from google.cloud import bigquery
 
@@ -59,18 +55,33 @@ def target_date(date_pattern, today):
         raise ValueError(f"Invalid date_pattern: {date_pattern}")
     return target_date
 
-def send_slack_notification(message):
-    logging.info(f"Sending Slack notification: {message}")
-    try:
-        response = slack_client.chat_postMessage(
-            channel=config["slack"]["channel"],
-            text=message
-        )
-    except SlackApiError as e:
-        print(f"Error sending message: {e}")
+
+class Notifier(ABC):
+
+    @abstractmethod
+    def send_notification(self, channel, message):
+        pass
+
+class SlackNotifier(Notifier):
+
+    def __init__(self, token):
+        self.client = WebClient(token=token)
+
+    def send_notification(self, channel, message):
+        try:
+            response = self.client.chat_postMessage(
+                channel=channel,
+                text=message
+            )
+        except SlackApiError as e:
+            print(f"Error sending message: {e}")
+
 
 def main():
     now = datetime.datetime.now(tz.UTC)
+    bq_client = BigQueryClient(config["bigquery"]["project_id"])
+    slack_client = SlackNotifier(config["slack"]["token"])
+
     for table in config["tables"]:
         dataset_id = table["dataset_id"]
         table_id = table["table_id"]
@@ -82,9 +93,7 @@ def main():
         if "date_suffix" in table:
             date_suffix = target_date(table["date_suffix"], now)
             table_id = f"{table_id}_{date_suffix.strftime('%Y%m%d')}"
-        
 
-        bq_client = BigQueryClient(config["bigquery"]["project_id"])
         last_modified = bq_client.check_last_modified_time(dataset_id, table_id)
 
         if last_modified is None:
@@ -102,12 +111,12 @@ def main():
             message = f"""
             :warning:  {dataset_id}.{table_id} was last modified at {formatted_last_modified}. It hasn't been updated for more than {check_frequency} hours.
             """
-            send_slack_notification(message)
+            slack_client.send_notification(config["slack"]["channel"], message)
         else:
             message = f"""
             :white_check_mark: {dataset_id}.{table_id} was last modified at {formatted_last_modified}. It has been updated within the last {check_frequency} hours.
             """
-            send_slack_notification(message)
+            slack_client.send_notification(config["slack"]["channel"], message)
 
 if __name__ == "__main__":
     main()
