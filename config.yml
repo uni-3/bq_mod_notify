@@ -1,0 +1,17 @@
+bigquery:
+  project_id: free-180413
+
+slack:
+  channel: "#notify"
+  #channel: "machine-learning" # "G6U6PPG92"
+
+tables:
+  - dataset_id: analytics_249693159
+    table_id: flat_events
+    date_suffix: "two_days_ago" # "yesterday" # or first_day_of_month or first_day_of_year
+    check_frequency: 24  # hours
+    check_time: "12:00" # 24-hour format
+  #- dataset_id: dataset2
+  #  table_id: table2
+  #  check_frequency: 6  # hours
+  #  check_time: "06:00" # 24-hour format
