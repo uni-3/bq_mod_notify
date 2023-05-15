@@ -1,5 +1,13 @@
-以下の要件をみたすpython コードをかいて
-- BigQueryのテーブル連携時間（最終更新日時）を監視するもの
-- dataset/table ごとにチェックする頻度、時刻をyamlファイルで設定できる
-- チェック項目は、INFORMATION_SCHEMAを用いて、最終更新日が指定した値より過去であるかを判定する
-- テーブルごとに成功、失敗を通知する。通知先はslackとする
+# BigQuery Table Monitor
+
+BigQuery Table Monitor is a Python package that monitors the last update time of BigQuery tables and sends notifications via Slack.
+
+## Features
+
+- Monitors the last update time of BigQuery tables.
+- Configurable check frequency and time for each dataset and table using a YAML configuration file.
+- Uses INFORMATION_SCHEMA to determine if the last update time is older than a specified threshold.
+- Sends notifications for each table's success or failure to a Slack channel.
+
+## Configuration
+Configure the monitoring settings using the config.yml file. Example configuration: see [example config](config/config.yml)
